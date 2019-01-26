@@ -2,8 +2,10 @@ import random
 import numpy as np
 from sklearn.datasets import load_digits
 from sklearn.linear_model import SGDClassifier
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import cross_val_score, cross_val_predict
 from sklearn.metrics import f1_score, precision_score, recall_score, confusion_matrix, precision_recall_curve
+from sklearn.metrics import roc_auc_score, roc_curve
 import matplotlib
 import matplotlib.pyplot as plt
 
@@ -35,6 +37,7 @@ y_test_3 = (y_test == 3)
 SGD_mnist = SGDClassifier(random_state=42)
 SGD_mnist.fit(X_train, y_train_3)
 
+
 y_train_3_estimates = cross_val_score(SGD_mnist, X_train, y_train_3, scoring="accuracy", cv=4)
 y_train_3_predictions = cross_val_predict(SGD_mnist, X_train, y_train_3, cv=3)
 
@@ -47,7 +50,7 @@ print("Recall: {}".format(recall_score(y_train_3, y_train_3_predictions)))
 
 # practicing precision-recall
 y_train_3_decision_scores = SGD_mnist.decision_function(X_train)
-print(y_train_3_decision_scores.shape)
+print(y_train_3_decision_scores)
 print(y_train_3)
 
 
@@ -71,5 +74,33 @@ def plot_precision_vs_recall(precisions, recalls):
     plt.show()
 
 
+def plot_roc_curve(fpr, tpr, fpr_forest, tpr_forest):
+    plt.plot(fpr_forest, tpr_forest, "b-", label="Forest")
+    plt.plot(fpr, tpr, "g-", label="SGD")
+    plt.xlabel("False Positive Rate")
+    plt.ylabel("True Positive Rate")
+    plt.legend(loc="lower right")
+    plt.show()
+
 # plot_precision_recall_threshold(precision_y_train_3, recall_y_train_3, threshold)
 # plot_precision_vs_recall(precision_y_train_3, recall_y_train_3)
+
+# ROC
+
+
+FPR_sgd, TPR_sgd, _ = roc_curve(y_train_3, y_train_3_decision_scores)
+# plot_roc_curve(FPR, TPR)
+
+# trying the same with "random forests" classifier
+Forest_mnist = RandomForestClassifier(random_state=42)
+y_probas_forest = cross_val_predict(Forest_mnist, X_train, y_train_3, cv=3, method="predict_proba")
+y_probas_forest_score = y_probas_forest[:, 1]
+
+FPR_forest, TPR_forest, thre = roc_curve(y_train_3, y_probas_forest_score)
+plot_roc_curve(FPR_sgd, TPR_sgd, FPR_forest, TPR_forest)
+
+# Multiclass classification
+SGD_mnist.fit(X_train, y_train)
+random_digit = X_train[127]
+print(SGD_mnist.predict([random_digit]))
+print(SGD_mnist.decision_function([random_digit]))
